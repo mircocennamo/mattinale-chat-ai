@@ -1,0 +1,123 @@
+
+package demo.elastic.rag;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Component;
+
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+@Component
+public class JsonIngestRunner implements CommandLineRunner {
+
+    private final VectorStore vectorStore;
+
+    @Value("classpath:questuraIns-2025-11-01.json")
+    Resource questuraInsResouce;
+
+    public JsonIngestRunner(VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+    }
+
+    @Override
+    public void run(String... args) {
+        try (Reader reader = new InputStreamReader(questuraInsResouce.getInputStream())) {
+            List<Document> docs = readQuesturaReportAsSectionDocuments(reader);
+
+            // (opzionale) split se qualche sezione fosse lunga:
+            var splitter = new org.springframework.ai.transformer.splitter.TokenTextSplitter();
+            List<Document> chunks = splitter.split(docs);
+
+            vectorStore.add(chunks);
+            System.out.println("[JsonIngestRunner] Ingest OK: " + chunks.size() + " chunks");
+        } catch (Exception e) {
+            System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private List<Document> readQuesturaReportAsSectionDocuments(Reader reader) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(reader);
+
+        String provincia = text(root, "provincia");           // "ROMA"
+        Boolean partial = bool(root, "datiParziali");         // true/false
+        String isoDate = toIso(text(root, "dataRiferimento")); // "2025-11-02"
+
+        Map<String, String> sectionToField = new LinkedHashMap<>();
+        sectionToField.put("organico", "infoOrganicoView");
+        sectionToField.put("fattiDiRilievo", "fattiDiRilievoView");
+        sectionToField.put("denunciati", "denunciatiView");
+        sectionToField.put("arrestati", "arrestatiView");
+        sectionToField.put("pattuglie", "pattuglieView");
+        sectionToField.put("servizi", "serviziView");
+        sectionToField.put("immigrazione", "immigrazioneView");
+        sectionToField.put("controlliAmministrativi", "controlliAmministrativiQuesturaView");
+        sectionToField.put("reati", "reatiView");
+        sectionToField.put("misurePrevenzione", "misurePrevenzioneView");
+        sectionToField.put("sequestri", "sequestriQuesturaView");
+        sectionToField.put("attiviPrevenzTerritorio", "attiviPrevenzTerritorioQuesturaView");
+        sectionToField.put("attiviPrevenzUfficiInvestigativi", "attiviPrevenzUfficiInvestigativiQuesturaView");
+        sectionToField.put("attiviPrevenzAltriUffici", "attiviPrevenzAltriUfficiQuesturaView");
+        sectionToField.put("attiviPrevenzCrimine", "attiviPrevenzCrimineView");
+
+        List<Document> docs = new ArrayList<>();
+        for (var entry : sectionToField.entrySet()) {
+            String sectionName = entry.getKey();
+            String jsonField = entry.getValue();
+            JsonNode node = root.get(jsonField);
+            if (node == null || node.isNull()) continue;
+
+            String content = makeReadableContent(sectionName, node);
+
+            Map<String, Object> md = new LinkedHashMap<>();
+            md.put("date", isoDate);
+            md.put("province", provincia);
+            md.put("partial", partial != null ? partial : false);
+            md.put("contentType", "section");
+            md.put("section", sectionName);
+
+            docs.add(new Document(content, md));
+        }
+        return docs;
+    }
+
+    private String makeReadableContent(String sectionName, JsonNode node) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sezione: ").append(sectionName).append("\n");
+        node.fields().forEachRemaining(e -> {
+            String k = e.getKey();
+            JsonNode v = e.getValue();
+            sb.append(k).append(": ").append(v.asText()).append("\n");
+        });
+        return sb.toString();
+    }
+
+    private String text(JsonNode node, String field) {
+        return (node.has(field) && !node.get(field).isNull()) ? node.get(field).asText() : null;
+    }
+    private Boolean bool(JsonNode node, String field) {
+        return (node.has(field) && node.get(field).isBoolean()) ? node.get(field).asBoolean() : null;
+    }
+
+    // "02/11/2025" -> "2025-11-02"
+    private String toIso(String ddMMyyyy) {
+        if (ddMMyyyy == null || ddMMyyyy.isBlank()) return null;
+        try {
+            var in = new SimpleDateFormat("dd/MM/yyyy");
+            in.setLenient(false);
+            var out = new SimpleDateFormat("yyyy-MM-dd");
+            return out.format(in.parse(ddMMyyyy));
+        } catch (Exception e) {
+            return ddMMyyyy; // fallback
+        }
+    }
+}

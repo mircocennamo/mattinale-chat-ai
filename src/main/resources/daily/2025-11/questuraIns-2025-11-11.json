@@ -1,0 +1,173 @@
+{
+  "infoOrganicoView" : {
+    "organico" : 38,
+    "forzaPresente" : 10,
+    "forzaIndisponibile" : 23,
+    "totalePersonaleImpiegatoAttivitaOperativa" : 7
+  },
+  "fattiDiRilievoView" : {
+    "fattiRilievo" : "evento di rilievo 46"
+  },
+  "denunciatiView" : {
+    "totali" : 19,
+    "italiani" : 1,
+    "comunitari" : 1,
+    "extraComunitari" : 14,
+    "altro" : 3
+  },
+  "arrestatiView" : {
+    "totali" : 75,
+    "italiani" : 9,
+    "comunitari" : 53,
+    "extraComunitari" : 6,
+    "altro" : 7
+  },
+  "pattuglieView" : {
+    "totaleEquipSquadraVolanti" : 17,
+    "equipSquadraVolantiMattina" : 7,
+    "equipSquadraVolantiPomeriggio" : 7,
+    "equipSquadraVolantiSera" : 2,
+    "equipSquadraVolantiNotte" : 1,
+    "totaleEquipAutoradioSezionali" : 1,
+    "equipAutoradioMattinaSezionali" : 1,
+    "equipAutoradioPomeriggioSezionali" : 1,
+    "equipAutoradioSeraSezionali" : 1,
+    "equipAutoradioNotteSezionali" : -2,
+    "totaleEquipAutoradioDistaccati" : 1,
+    "equipAutoradioMattinaDistaccati" : 1,
+    "equipAutoradioPomeriggioDistaccati" : 1,
+    "equipAutoradioSeraDistaccati" : 1,
+    "equipAutoradioNotteDistaccati" : -2,
+    "totalePattRepartoPrevenzione" : 1,
+    "totalePattAltriServizi" : 1,
+    "totalePattUfficiInvestigativi" : 1,
+    "totalePattuglie" : 22
+  },
+  "serviziView" : {
+    "totaleManifestazioni" : 25,
+    "totalePersTerritoriale" : 18,
+    "totalePersonaleRinforzo" : 24,
+    "totalePersImpiegato" : 42,
+    "totaleServiziAltoImpatto" : 4,
+    "totaleServiziContrTerr" : 31,
+    "repartoMobile" : 32,
+    "battaglione" : 86,
+    "repartoProntoImpiego" : 53
+  },
+  "immigrazioneView" : {
+    "cittadiniStranieri" : 51,
+    "extraComunitari" : 12,
+    "provvRespi" : 99,
+    "decretiEspul" : 23,
+    "decretiAllon" : 23,
+    "totaleRimpatri" : 95,
+    "accompagnamento" : 30,
+    "trattenimento" : 48,
+    "misuraAlternativa" : 17,
+    "provvRespAllaFrontiera" : 71,
+    "ordqu" : 7,
+    "accompagnamentiCpr" : 31
+  },
+  "controlliAmministrativiQuesturaView" : {
+    "controlliAmministrativi" : 23,
+    "illecitiAmministrativi" : 24,
+    "provvedimenti" : 67
+  },
+  "reatiView" : {
+    "totaleDelitti" : 11,
+    "omicidi" : 1,
+    "tentatiOmicidi" : 1,
+    "lesioni" : 1,
+    "violenzeSessuali" : 1,
+    "rapine" : 1,
+    "estorsioni" : 1,
+    "usura" : 1,
+    "furti" : 1,
+    "truffe" : 1,
+    "danneggiamenti" : 1,
+    "stupefacenti" : 1
+  },
+  "misurePrevenzioneView" : {
+    "avvisiOrali" : 50,
+    "rimpatri" : 4,
+    "daspoEmessi" : 1,
+    "daspoFuoriContesto" : 2,
+    "dacur" : 1,
+    "sorveglianze" : 1,
+    "ammonimentiEmessi" : 1,
+    "misurePrevenzione" : 60
+  },
+  "sequestriQuesturaView" : {
+    "cocaina" : 1,
+    "eroina" : 1,
+    "benzodiazepine" : 2,
+    "marijuana" : 1,
+    "fentanyl" : 1,
+    "shaboo" : 1,
+    "ecstasyMdma" : 1,
+    "hashish" : 1,
+    "altreDroghe" : 1,
+    "sequStupefacenti" : 10,
+    "armiGuerra" : 1,
+    "armiComuni" : 1,
+    "armiComuniNonDaSparo" : 1,
+    "esplosivi" : 1,
+    "munizioni" : 1,
+    "armi" : -3,
+    "sequestriArmiEdEsplosivi" : 2,
+    "autovetture" : 2,
+    "motoveicoli" : 4,
+    "altreTipologieVetture" : 1,
+    "sequestriVeicoli" : 7,
+    "numeroSequestri" : 19
+  },
+  "attiviPrevenzTerritorioQuesturaView" : {
+    "personeControllate" : 45,
+    "italiani" : 35,
+    "comunitari" : 4,
+    "extraComunitari" : 3,
+    "altro" : 3,
+    "positiviPersoneControllate" : 13,
+    "veicoliControllati" : 88,
+    "positiviVeicoli" : 48,
+    "personeControllateIniziativa" : 30,
+    "personeControllateIntervento" : 15
+  },
+  "attiviPrevenzUfficiInvestigativiQuesturaView" : {
+    "personeControllate" : 33,
+    "italiani" : 20,
+    "comunitari" : 11,
+    "extraComunitari" : 1,
+    "altro" : 1,
+    "positiviPersoneControllate" : 24,
+    "veicoliControllati" : 90,
+    "positiviVeicoli" : 90,
+    "personeControllateIniziativa" : 15,
+    "personeControllateIntervento" : 18
+  },
+  "attiviPrevenzAltriUfficiQuesturaView" : {
+    "personeControllate" : 100,
+    "italiani" : 4,
+    "comunitari" : 91,
+    "extraComunitari" : 1,
+    "altro" : 4,
+    "positiviPersoneControllate" : 82,
+    "veicoliControllati" : 66,
+    "positiviVeicoli" : 18,
+    "personeControllateIniziativa" : 43,
+    "personeControllateIntervento" : 57
+  },
+  "attiviPrevenzCrimineView" : {
+    "personeControllate" : 59,
+    "italiani" : 43,
+    "comunitari" : 12,
+    "extraComunitari" : 3,
+    "altro" : 1,
+    "positiviPersoneControllate" : 18,
+    "veicoliControllati" : 55,
+    "positiviVeicoliControllati" : 35
+  },
+  "dataRiferimento" : "11/11/2025",
+  "datiParziali" : false,
+  "provincia" : "ROMA"
+}
