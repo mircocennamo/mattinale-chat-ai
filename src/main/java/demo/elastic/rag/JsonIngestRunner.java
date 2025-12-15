@@ -21,15 +21,18 @@ public class JsonIngestRunner implements CommandLineRunner {
     private final VectorStore vectorStore;
 
     @Value("classpath:questuraIns-2025-11-01.json")
-    Resource questuraInsResouce;
+    Resource questuraInsResouce1;
+
+    @Value("classpath:questuraIns-2025-11-02.json")
+    Resource questuraInsResouce2;
 
     public JsonIngestRunner(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
-    @Override
-    public void run(String... args) {
-        try (Reader reader = new InputStreamReader(questuraInsResouce.getInputStream())) {
+
+    private void addjson(Resource resource) {
+        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
             List<Document> docs = readQuesturaReportAsSectionDocuments(reader);
 
             // (opzionale) split se qualche sezione fosse lunga:
@@ -37,11 +40,18 @@ public class JsonIngestRunner implements CommandLineRunner {
             List<Document> chunks = splitter.split(docs);
 
             vectorStore.add(chunks);
-            System.out.println("[JsonIngestRunner] Ingest OK: " + chunks.size() + " chunks");
+            System.out.println("[JsonIngestRunner] Ingest OK: " + chunks.size() + " chunks from " + resource.getFilename());
         } catch (Exception e) {
             System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+
+    @Override
+    public void run(String... args) {
+        addjson(questuraInsResouce1);
+        addjson(questuraInsResouce2);
     }
 
     private List<Document> readQuesturaReportAsSectionDocuments(Reader reader) throws Exception {
