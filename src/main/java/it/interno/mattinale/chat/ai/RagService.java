@@ -9,6 +9,7 @@ import it.interno.mattinale.chat.ai.tool.ChartTools;
 import it.interno.mattinale.chat.ai.util.JsonConverters;
 import it.interno.mattinale.chat.ai.util.ProvinceDictionary;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;

@@ -16,10 +16,10 @@
     "altro" : 0
   },
   "arrestatiView" : {
-    "totali" : 50,
-    "italiani" : 10,
-    "comunitari" : 20,
-    "extraComunitari" : 5,
+    "totali" : 1000,
+    "italiani" : 20,
+    "comunitari" : 30,
+    "extraComunitari" : 45,
     "altro" : 5
   },
   "perquisizioniView" : {
