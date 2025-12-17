@@ -17,6 +17,15 @@ public class WebConfig implements WebMvcConfigurer {
                         .allowedOrigins("*")
                         .allowedMethods("*");
             }
+
+            @Override
+            public void addResourceHandlers(
+                    org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+                String imagesPath = java.nio.file.Paths.get(System.getProperty("user.dir"), "images").toUri()
+                        .toString();
+                registry.addResourceHandler("/images/**")
+                        .addResourceLocations(imagesPath);
+            }
         };
     }
 }
