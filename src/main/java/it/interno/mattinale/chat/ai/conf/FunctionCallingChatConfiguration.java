@@ -1,4 +1,4 @@
-package demo.elastic.rag.conf;
+package it.interno.mattinale.chat.ai.conf;
 
 
 import org.springframework.ai.chat.client.ChatClient;

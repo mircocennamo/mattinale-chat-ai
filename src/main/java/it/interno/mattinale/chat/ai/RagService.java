@@ -1,40 +1,37 @@
-package demo.elastic.rag;
+package it.interno.mattinale.chat.ai;
 
 
-import demo.elastic.rag.model.FilterResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.interno.mattinale.chat.ai.model.ChatResponse;
+import it.interno.mattinale.chat.ai.tool.ChartTools;
+import it.interno.mattinale.chat.ai.util.JsonConverters;
+import it.interno.mattinale.chat.ai.util.ProvinceDictionary;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.ExtractedTextFormatter;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.reader.pdf.config.PdfDocumentReaderConfig;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import demo.elastic.rag.util.ProvinceDictionary;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
+
+
 
 @Service
 public class RagService {
@@ -43,7 +40,9 @@ public class RagService {
     private final VectorStore vectorStore;
     private final ChatModel chatModel;
     private final ProvinceDictionary provinceDictionary;
-    private final ChatClient chatClient;
+    private final ChartTools chartTools;
+    private final JsonConverters jsonConverters;
+
 
 
     @Value("classpath:templates/prompt2.st")
@@ -56,6 +55,10 @@ public class RagService {
     @Value("${rag.search.similarityThreshold:0.0}")
     private double similarityThreshold;
 
+   // private final java.util.List<ToolCallback> toolCallbacks;
+
+
+
     // Nota: alcune implementazioni non supportano MMR; per compatibilità non lo abilitiamo qui.
 
     /**
@@ -63,11 +66,15 @@ public class RagService {
      * Configura il ChatClient per usare l'advisor RAG (RetrievalAdvisor)
      * che si connette al VectorStore (Oracle 23ai).
      */
-    public RagService(VectorStore vectorStore, ChatModel chatModel, ProvinceDictionary provinceDictionary, ChatClient chatClient) {
+    public RagService(VectorStore vectorStore, ChatModel chatModel, ProvinceDictionary provinceDictionary,
+                      ChartTools chartTools, JsonConverters jsonConverters
+    ) {
         this.vectorStore = vectorStore;
         this.chatModel = chatModel;
         this.provinceDictionary = provinceDictionary;
-        this.chatClient = chatClient;
+        this.chartTools = chartTools;
+        this.jsonConverters = jsonConverters;
+
     }
 
 
@@ -79,12 +86,30 @@ public class RagService {
                 Dato un testo in italiano, estrai i seguenti filtri se presenti:
                 - provincia: nome della provincia in maiuscolo (es. "ROMA", "MILANO")
                 - data: in formato ISO "yyyy-MM-dd" (es. "2025-11-15")
+                - source : questura,polizia stradale,polfer,cosc,frontiera
                 Fornisci la risposta da poter poi inserire nel filter del VectorStore.
                 - sezione: una delle seguenti sezioni: arrestati, denunciati, pattuglie, servizi, immigrazione, controlliAmministrativiQuestura, reati, misurePrevenzione, sequestriQuestura, attiviPrevenzTerritorioQuestura, attiviPrevenzUfficiInvestigativiQuestura, attiviPrevenzAltriUfficiQuestura, attiviPrevenzCrimine
                 - datiParziali: true/false
-                Ad esempio, se l'utente chiede "Mattinale della questura di Roma del  15/11/2025 con dati parziali?",
+                    Ad esempio, se l'utente chiede "Mattinale della questura di Roma del  15/11/2025 con dati parziali?",
+                la risposta sarà:
+                 province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source == 'questura'
+                  
+                  Ad esempio, se l'utente chiede "Mattinale della polfer o polizia ferroviaria di Roma del  15/11/2025 con dati parziali?",
                 la risposta sarà:  
-                 province == 'ROMA' AND date == '2025-11-15' AND partial == true
+                 province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source == 'polfer'
+                 
+                 Ad esempio, se l'utente chiede "Mattinale cosc di Roma del  15/11/2025 con dati parziali?",
+                la risposta sarà:  
+                 province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source == 'cosc'
+                  
+                  Ad esempio, se l'utente chiede "Mattinale della polizia stradale o polizia di Roma del  15/11/2025 con dati parziali?",
+                la risposta sarà:  
+                 province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source == 'polizia stradale'
+                 
+                 Ad esempio, se l'utente chiede "Mattinale della frontiera di Roma del  15/11/2025 con dati parziali?",
+                la risposta sarà:  
+                 province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source == 'frontiera'
+                 
                 Se un filtro non è presente, non includerlo nella risposta.
                 Se l'utente dice "oggi" o "ieri", converti in data ISO
                 Usa il dizionario delle province per mappare nomi comuni a sigle ufficiali.
@@ -235,13 +260,14 @@ public class RagService {
 
 
 
-    public String generateAnswer(String question) {
+    public ChatResponse generateAnswer(String question) {
           // 1) Costruisci la query testuale per l'embedding (usa la domanda così com'è)
           String query = question;
 
           // 2) Estrai e sanifica il filtro (AND/OR, apici singoli, rimuovi doppi apici esterni)
           String rawFilter = extractFilterFromNL(question);
           String filter = sanitizeFilterExpression(rawFilter);
+          if(filter.isEmpty()) return new ChatResponse("non è possibile estrarre i filtri,modificare la richiesta", Instant.now().toString(),null );
 
           System.out.println("[RagService] filter: " + filter);
 
@@ -256,11 +282,8 @@ public class RagService {
           );
 
           if (results == null || results.isEmpty()) {
-              return "Nessun documento trovato.";
+              return new ChatResponse("Nessun documento trovato.", Instant.now().toString(),null);
           }
-
-
-        if (results.isEmpty()) return "Nessun documento trovato.";
 
         Document d0 = results.getFirst();
         System.out.println("[RAG] Primo documento:");
@@ -285,16 +308,7 @@ public class RagService {
                   .map(doc -> formatSource(doc.getMetadata()))
                   .collect(java.util.stream.Collectors.joining("\n"));
 
-
-
-
-
-
-
-
-
-
-
+          var outputConverter = new BeanOutputConverter<>(ChatResponse.class);
 
         System.out.println("[RagService] Documenti recuperati: " + results.size());
 
@@ -302,16 +316,32 @@ public class RagService {
           PromptTemplate promptTemplate = new PromptTemplate(getInfoTemplate);
         Message systemMessage = promptTemplate.createMessage(Map.of(
                 "documents", documents,
-                "sources", sources
+                "sources", sources,
+                "format",outputConverter.getFormat()
         ));
 
         Message userMessage = new UserMessage(question);
 
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
+        // Inietta le opzioni nel Prompt
+        Prompt prompt = new Prompt(java.util.List.of(systemMessage, userMessage));
 
 
-        var resp = chatModel.call(prompt);
-        return resp.getResult().getOutput().getText();
+        String response = ChatClient.create(chatModel)
+                .prompt(prompt)
+                .tools(chartTools)
+                .call()
+                .content();
+
+        System.out.println("[RagService] Response: " + response);
+        try {
+            ChatResponse chatResponse = jsonConverters.toChatResponse(response);
+            System.out.println("[RagService] ChatResponse: " + chatResponse.toString());
+            return chatResponse;
+        } catch (JsonProcessingException e) {
+            ChatResponse chatResponse = new ChatResponse("Errore parsing risposta LLM: " + e.getMessage(),Instant.now().toString(),null);
+            System.out.println("[RagService] Response error : " + chatResponse);
+            return chatResponse;
+        }
     }
 
 
@@ -422,122 +452,5 @@ public class RagService {
             }
         }
         return raw.trim();
-    }
-
-    // Estrae dal testo della sezione (tabella markdown) le coppie metrica->valore
-    private Map<String, String> parseSectionMetrics(String text) {
-        Map<String, String> out = new HashMap<>();
-        if (text == null || text.isBlank()) return out;
-        String[] lines = text.split("\r?\n");
-        for (String line : lines) {
-            String ln = line.trim();
-            // righe attese: | metrica | valore |
-            if (ln.startsWith("|") && ln.endsWith("|") && !ln.startsWith("|---")) {
-                String[] parts = ln.split("\\|");
-                // parts: ["", " metrica ", " valore ", ""]
-                if (parts.length >= 3) {
-                    String key = parts[1].trim();
-                    String val = parts[2].trim();
-                    if (!key.isEmpty() && !val.isEmpty() && !key.equalsIgnoreCase("metrica") && !key.equalsIgnoreCase("valore")) {
-                        out.put(key, val);
-                    }
-                }
-            }
-        }
-        System.out.println("[RagService] parseSectionMetrics -> estratte " + out.size() + " metriche.");
-        return out;
-    }
-
-    // =========================
-    // Parsing filtri dalla domanda (italiano)
-    // =========================
-    private static class ParsedFilters {
-        String province;
-        String dateIso; // yyyy-MM-dd
-        String section;
-        Boolean partial;
-    }
-
-    private ParsedFilters parseFiltersFromQuestion(String question) {
-        ParsedFilters pf = new ParsedFilters();
-        if (question == null) return pf;
-        String q = question.trim();
-        String qLower = q.toLowerCase(Locale.ITALY);
-
-        // 1) Date naturali: oggi/ieri
-        LocalDate today = LocalDate.now();
-        if (qLower.contains("oggi")) {
-            pf.dateIso = today.toString();
-        } else if (qLower.contains("ieri")) {
-            pf.dateIso = today.minusDays(1).toString();
-        }
-
-        // 2) Date esplicite: gg/mm/aaaa oppure gg-mm-aaaa
-        if (pf.dateIso == null) {
-            Pattern pDate = Pattern.compile("(\\b[0-3]?\\d)[/\\-]([0-1]?\\d)[/\\-]((?:19|20)?\\d{2})");
-            Matcher m = pDate.matcher(q);
-            if (m.find()) {
-                String dd = String.format("%02d", Integer.parseInt(m.group(1)));
-                String MM = String.format("%02d", Integer.parseInt(m.group(2)));
-                String yyyy = m.group(3);
-                if (yyyy.length() == 2) {
-                    // euristica: anni 00..79 -> 2000..2079, 80..99 -> 1980..1999
-                    int yy = Integer.parseInt(yyyy);
-                    yyyy = (yy < 80 ? 2000 + yy : 1900 + yy) + "";
-                }
-                pf.dateIso = LocalDate.parse(dd + "/" + MM + "/" + yyyy, DateTimeFormatter.ofPattern("dd/MM/yyyy")).toString();
-            }
-        }
-
-        // 3) Sezione: mapping di sinonimi -> chiavi section
-        Map<String, String> sectionSyn = new HashMap<>();
-        sectionSyn.put("arrestati", "arrestati");
-        sectionSyn.put("arresti", "arrestati");
-        sectionSyn.put("denunciati", "denunciati");
-        sectionSyn.put("denunce", "denunciati");
-        sectionSyn.put("pattuglie", "pattuglie");
-        sectionSyn.put("servizi", "servizi");
-        sectionSyn.put("immigrazione", "immigrazione");
-        sectionSyn.put("controlli amministrativi", "controlliAmministrativiQuestura");
-        sectionSyn.put("reati", "reati");
-        sectionSyn.put("misure di prevenzione", "misurePrevenzione");
-        sectionSyn.put("misure prevenzione", "misurePrevenzione");
-        sectionSyn.put("sequestri", "sequestriQuestura");
-        sectionSyn.put("prevenzione territorio", "attiviPrevenzTerritorioQuestura");
-        sectionSyn.put("prevenzione investigativi", "attiviPrevenzUfficiInvestigativiQuestura");
-        sectionSyn.put("prevenzione altri uffici", "attiviPrevenzAltriUfficiQuestura");
-        sectionSyn.put("crimine", "attiviPrevenzCrimine");
-
-        for (var e : sectionSyn.entrySet()) {
-            if (qLower.contains(e.getKey())) {
-                pf.section = e.getValue();
-                break;
-            }
-        }
-
-        // 4) Provincia: usa dizionario completo (nomi estesi, sigle, articoli/apostrofi, forme istituzionali)
-        try {
-            ProvinceDictionary.MatchResult mr = provinceDictionary.matchProvince(q);
-            if (mr != null) {
-                if (mr.ambiguous) {
-                    System.out.println("[RagService] Provincia ambigua nella domanda. Candidati: " + (mr.candidates == null ? "[]" : mr.candidates));
-                    // Non impostiamo il filtro provincia per massimizzare il recall; la risposta inviterà alla disambiguazione se necessario
-                } else if (mr.canonicalName != null) {
-                    pf.province = mr.canonicalName; // già MAIUSCOLO
-                }
-            }
-        } catch (Throwable t) {
-            // In caso di problemi col dizionario, non bloccare la ricerca; mantieni il comportamento precedente (nessun filtro)
-            System.out.println("[RagService] Errore nel matching provincia: " + t.getMessage());
-        }
-
-        // 5) Dati parziali
-        if (qLower.contains("parzial")) {
-            pf.partial = true;
-        } else if (qLower.contains("completo") || qLower.contains("completi")) {
-            pf.partial = false;
-        }
-
-        return pf;
     }
 }

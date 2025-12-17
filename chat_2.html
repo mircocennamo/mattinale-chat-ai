@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat AI con Grafici</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      height: 95vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+
+    .message {
+      margin-bottom: 20px;
+      max-width: 80%;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-message {
+      margin-left: auto;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 18px 18px 4px 18px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .ai-message {
+      background: white;
+      padding: 15px;
+      border-radius: 18px 18px 18px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-left: 4px solid #667eea;
+    }
+
+    .message-content {
+      line-height: 1.5;
+    }
+
+    .chart-container {
+      margin: 15px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      position: relative;
+    }
+
+    .chart-container h4 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .static-chart {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .input-area {
+      padding: 20px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 10px;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 15px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    #user-input:focus {
+      border-color: #667eea;
+    }
+
+    #send-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0 30px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+      text-align: right;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .ai-icon, .user-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .ai-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .user-icon {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 10px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-10px); }
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chart-btn {
+      padding: 6px 12px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .chart-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .chart-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+
+      .input-area {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🤖 AI Chat con Grafici</h1>
+    <p>Microservizio: <span id="api-status">🔵 Connesso</span></p>
+  </div>
+
+  <div class="chat-container" id="chat-container">
+    <!-- Messaggi appariranno qui -->
+    <div class="message ai-message">
+      <div class="message-header">
+        <div class="ai-icon">AI</div>
+        <strong>Assistente</strong>
+      </div>
+      <div class="message-content">
+        Ciao! Sono il tuo assistente AI. Posso creare grafici su richiesta.<br>
+        Prova a chiedere:<br>
+        • "Mostrami un grafico a linee"<br>
+        • "Crea un istogramma"<br>
+        • "Genera un grafico a dispersione"<br>
+        • "Mostra dati in un grafico a barre"
+      </div>
+      <div class="timestamp">Ora</div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="user-input"
+           placeholder="Scrivi il tuo messaggio..."
+           autocomplete="off"
+           onkeypress="if(event.key === 'Enter') sendMessage()">
+    <button id="send-btn" onclick="sendMessage()">Invia</button>
+  </div>
+</div>
+
+<script>
+  // Configurazione
+  const API_URL = 'http://localhost:9999/rag/ask'; // Modifica porta se necessario
+  const chatContainer = document.getElementById('chat-container');
+  const userInput = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const apiStatus = document.getElementById('api-status');
+
+  // Stato dell'applicazione
+  let isTyping = false;
+
+  // Test connessione al microservizio
+  async function testConnection() {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'HEAD',
+        mode: 'no-cors' // Permette di testare senza CORS issues
+      });
+      apiStatus.textContent = '🔵 Connesso';
+      apiStatus.style.color = '#4CAF50';
+    } catch (error) {
+      apiStatus.textContent = '🔴 Non connesso';
+      apiStatus.style.color = '#f44336';
+      console.warn('Microservizio non raggiungibile. Assicurati che sia in esecuzione su localhost:5000');
+    }
+  }
+
+  // Inizializza test connessione
+  testConnection();
+
+  // Formatta timestamp
+  function formatTime(date = new Date()) {
+    return date.toLocaleTimeString('it-IT', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Mostra indicatore di typing
+  function showTypingIndicator() {
+    if (isTyping) return;
+
+    isTyping = true;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai-message';
+    typingDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="ai-icon">AI</div>
+                    <strong>Assistente</strong>
+                </div>
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+    chatContainer.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    return typingDiv;
+  }
+
+  // Rimuovi indicatore di typing
+  function removeTypingIndicator(typingDiv) {
+    if (typingDiv && typingDiv.parentNode) {
+      typingDiv.remove();
+    }
+    isTyping = false;
+  }
+
+  // Aggiungi messaggio alla chat
+  function addMessage(content, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+
+    if (isUser) {
+      messageDiv.innerHTML = `
+                    <div class="message-header" style="justify-content: flex-end;">
+                        <strong>Tu</strong>
+                        <div class="user-icon">TU</div>
+                    </div>
+                    <div class="message-content">${content}</div>
+                    <div class="timestamp">${formatTime()}</div>
+                `;
+    } else {
+      messageDiv.innerHTML = content;
+    }
+
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  // Renderizza grafico da dati JSON
+  function renderChart(chartData, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container || !chartData) return;
+
+    try {
+      if (chartData.type === 'plotly') {
+        // Grafico Plotly interattivo
+        Plotly.newPlot(containerId, chartData.data, chartData.layout || {}, {
+          responsive: true,
+          displayModeBar: true,
+          displaylogo: false
+        });
+      } else if (chartData.type === 'image') {
+        // Immagine base64 statica
+        container.innerHTML = `<img src="data:image/png;base64,${chartData.data}"
+                                                class="static-chart"
+                                                alt="Grafico generato">`;
+      } else if (chartData.type === 'simple') {
+        // Grafico semplice con Chart.js (se incluso)
+        renderSimpleChart(chartData, container);
+      }
+    } catch (error) {
+      console.error('Errore nel rendering del grafico:', error);
+      container.innerHTML = `<p style="color: #f44336;">Errore nel rendering del grafico</p>`;
+    }
+  }
+
+  // Analizza e renderizza messaggio AI
+  function renderAIMessage(response) {
+    let content = '';
+
+    if (typeof response === 'string') {
+      content = response;
+    } else if (response.message) {
+      // Formato strutturato
+      content = `<div class="message-header">
+                              <div class="ai-icon">AI</div>
+                              <strong>Assistente</strong>
+                           </div>
+                           <div class="message-content">${response.message}</div>`;
+
+      // Aggiungi grafico se presente
+      if (response.chart) {
+        const chartId = `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        content += `<div class="chart-container">
+                                   <h4>📊 Visualizzazione</h4>
+                                   <div id="${chartId}" style="width: 100%; height: 400px;"></div>
+                               </div>`;
+
+        // Renderizza dopo che il DOM è aggiornato
+        setTimeout(() => {
+          renderChart(response.chart, chartId);
+        }, 100);
+      }
+
+      // Aggiungi insights se presenti
+      if (response.insights) {
+        content += `<div class="message-content" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                                   <strong>💡 Insights:</strong><br>${response.insights}
+                                </div>`;
+      }
+
+      content += `<div class="timestamp">${formatTime()}</div>`;
+    } else {
+      content = `<div class="message-header">
+                              <div class="ai-icon">AI</div>
+                              <strong>Assistente</strong>
+                           </div>
+                           <div class="message-content">${JSON.stringify(response)}</div>
+                           <div class="timestamp">${formatTime()}</div>`;
+    }
+
+    return content;
+  }
+
+  // Invia messaggio al microservizio
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (!message || sendBtn.disabled) return;
+
+    // Aggiungi messaggio utente
+    addMessage(message, true);
+
+    // Pulisci input e disabilita pulsante
+    userInput.value = '';
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+
+    // Mostra indicatore di typing
+    const typingIndicator = showTypingIndicator();
+
+    try {
+      // Chiama il microservizio
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          timestamp: new Date().toISOString(),
+          session_id: 'chat-' + Date.now()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`);
+      }
+
+      const data = await response.text();
+
+      // Rimuovi indicatore di typing
+      removeTypingIndicator(typingIndicator);
+
+      // Renderizza risposta AI
+      const aiMessage = renderAIMessage(data);
+      addMessage(aiMessage, false);
+
+    } catch (error) {
+      console.error('Errore nella chiamata API:', error);
+
+      // Rimuovi indicatore di typing
+      removeTypingIndicator(typingIndicator);
+
+      // Mostra messaggio di errore
+      addMessage(`
+                    <div class="message-header">
+                        <div class="ai-icon">AI</div>
+                        <strong>Assistente</strong>
+                    </div>
+                    <div class="message-content" style="color: #f44336;">
+                        ❌ Errore di connessione al microservizio.<br>
+                        Assicurati che sia in esecuzione su <code>localhost:9999</code>
+                    </div>
+                    <div class="timestamp">${formatTime()}</div>
+                `, false);
+
+      // Mostra suggerimento
+      setTimeout(() => {
+        addMessage(`
+                        <div class="message-header">
+                            <div class="ai-icon">AI</div>
+                            <strong>Assistente</strong>
+                        </div>
+                        <div class="message-content">
+                            <strong>Per testare senza microservizio:</strong><br>
+                            Prova a chiedere "grafico demo" per vedere un esempio.
+                        </div>
+                        <div class="timestamp">${formatTime()}</div>
+                    `, false);
+      }, 500);
+    } finally {
+      // Riabilita input
+      sendBtn.disabled = false;
+      userInput.disabled = false;
+      userInput.focus();
+    }
+  }
+
+  // Demo grafico se il microservizio non risponde
+  function showDemoChart() {
+    const demoData = {
+      message: "Ecco un grafico demo di esempio:",
+      chart: {
+        type: 'plotly',
+        data: [{
+          x: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag'],
+          y: [10, 15, 13, 17, 21],
+          type: 'scatter',
+          mode: 'lines+markers',
+          marker: { color: '#667eea', size: 10 },
+          line: { color: '#764ba2', width: 3 }
+        }],
+        layout: {
+          title: 'Vendite Mensili 2024',
+          xaxis: { title: 'Mese' },
+          yaxis: { title: 'Vendite (k€)' },
+          plot_bgcolor: '#f8f9fa',
+          paper_bgcolor: '#ffffff'
+        }
+      },
+      insights: "Trend in crescita positiva con picco a Maggio."
+    };
+
+    const aiMessage = renderAIMessage(demoData);
+    addMessage(aiMessage, false);
+  }
+
+  // Event Listeners
+  userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Auto-focus sull'input
+  window.addEventListener('load', () => {
+    userInput.focus();
+  });
+
+  // Demo per test
+  window.showDemoChart = showDemoChart;
+</script>
+</body>
+</html>

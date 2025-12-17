@@ -1,4 +1,4 @@
-package demo.elastic.rag.conf;
+package it.interno.mattinale.chat.ai.conf;
 
 /**
  * @author mirco.cennamo on 02/03/2025

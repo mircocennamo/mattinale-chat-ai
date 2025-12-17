@@ -1,6 +1,8 @@
-package demo.elastic.rag;
+package it.interno.mattinale.chat.ai;
 
-import org.springframework.ai.chat.client.ChatClient;
+import it.interno.mattinale.chat.ai.model.ChatRequest;
+import it.interno.mattinale.chat.ai.model.ChatResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
@@ -58,12 +60,12 @@ public class RagController {
 
 
 
-    @GetMapping("/ask")
-    public String generateRAGAnswer(
-            @RequestParam(value = "question") String question
+    @PostMapping("/ask")
+    public ResponseEntity<ChatResponse> generateRAGAnswer(
+            @Valid @RequestBody ChatRequest chatRequest
     ) {
         // I filtri vengono dedotti automaticamente dal testo della domanda
-        return ragService.generateAnswer(question);
+        return ResponseEntity.ok(ragService.generateAnswer(chatRequest.getText()));
     }
 
     @PostMapping(value = "/uploadJson", consumes = "application/json")

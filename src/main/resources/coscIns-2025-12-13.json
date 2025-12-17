@@ -1,0 +1,75 @@
+ {
+  "infoOrganicoView" : {
+    "organico" : 10,
+    "forzaPresente" : 20,
+    "forzaIndisponibile" : 30,
+    "totalePersonaleImpiegatoAttivitaOperativa" : 40
+  },
+  "fattiDiRilievoView" : {
+    "fattiRilievo" : "i fatti di rilievo del 13 Dicembre"
+  },
+  "denunciatiView" : {
+    "totali" : 70,
+    "italiani" : 10,
+    "comunitari" : 20,
+    "extraComunitari" : 30,
+    "altro" : 10
+  },
+  "arrestatiView" : {
+    "totali" : 50,
+    "italiani" : 10,
+    "comunitari" : 20,
+    "extraComunitari" : 5,
+    "altro" : 5
+  },
+  "perquisizioniView" : {
+    "totali" : 10,
+    "pedoAdescamentoOnLine" : 20,
+    "reatiPersonaOnline" : 40,
+    "prevAntiTerrorismo" : 50,
+    "computerCrime" : 60,
+    "financialCyberCrime" : 40
+  },
+  "monitoraggioWebView" : {
+    "totali" : 56,
+    "pedoAdescamentoOnLine" : 20,
+    "reatiPersonaOnline" : 40,
+    "prevAntiTerrorismo" : 60,
+    "computerCrime" : 10,
+    "financialCyberCrime" : 40
+  },
+  "oscuramentoWebView" : {
+    "totali" : 40,
+    "pedoAdescamentoOnLine" : 10,
+    "reatiPersonaOnline" : 20,
+    "prevAntiTerrorismo" : 10,
+    "computerCrime" : 0,
+    "financialCyberCrime" : 0
+  },
+  "noscWebView" : {
+    "attacchiRilevati" : 50,
+    "infraCriticheOperServizi" : 40,
+    "aziendePrivati" : 20,
+    "alertDiramati" : 10
+  },
+  "crimineEconFinanOnLineView" : {
+    "sommeDenaroSottratte" : 40,
+    "sommeDenaroRecuperate" : 20
+  },
+  "attiviPrevenzTerritorioCoscView" : {
+    "totPattugVigilanzaUffPost" : 190,
+    "totUffPostContr" : 10,
+    "personeControllate" : 20,
+    "italiani" : 30,
+    "comunitari" : 40,
+    "extraComunitari" : 50,
+    "altro" : 60,
+    "veicoliControllati" : 70,
+    "positiviVeicoli" : 50,
+    "totIncontri" : 20,
+    "totPartecipanti" : 10
+  },
+  "dataRiferimento" : "14/12/2025",
+  "datiParziali" : true,
+  "provincia" : "ROMA"
+}

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mattinale AI</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif; margin: 2rem; }
+    h1, h2 { margin: .25rem 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #9993; border-radius: 10px; padding: 1rem; }
+    button { padding: .6rem 1rem; border-radius: 8px; border: 1px solid #8885; cursor: pointer; }
+    textarea { width: 100%; min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+    .preview { max-width: 100%; height: auto; border: 1px dashed #8885; border-radius: 8px; padding: .5rem; margin-top: .5rem; }
+    .hidden { display: none; }
+    label { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- Sezione identica ai testi del file fornito -->
+  <h1>Mattinale AI</h1>
+  <h2>Mattinale AI</h2>
+
+  <div class="grid">
+    <div class="card">
+      <strong>Chat</strong>
+      <div style="margin-top:.5rem; display:flex; gap:.5rem; flex-wrap:wrap">
+        <button type="button" onclick="clearChat()">Pulisci chat</button>
+        <button type="button" onclick="sendMessage()">Invia</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Carica file Excel</h4>
+      <button type="button" onclick="uploadExcel()">Carica</button>
+    </div>
+
+    <div class="card">
+      <h4>Carica file PDF</h4>
+      <button type="button" onclick="uploadPdf()">Carica</button>
+    </div>
+  </div>
+
+  <!-- Nuova sezione: supporto immagini (Data URL base64) -->
+  <div class="card" style="margin-top:1rem">
+    <h4>Supporto immagini</h4>
+    <p>Incolla un'immagine come Data URL (es. <code>data:image/png;base64,...</code>) e visualizzala quando serve.</p>
+    <label for="dataUrl">Data URL</label>
+    <textarea id="dataUrl" placeholder="data:image/png;base64,iVBORw0K..."></textarea>
+    <div style="margin-top:.5rem; display:flex; gap:.5rem; flex-wrap:wrap">
+      <button type="button" onclick="renderImage()">Mostra immagine</button>
+      <button type="button" onclick="downloadImage()">Scarica immagine</button>
+      <button type="button" onclick="clearImage()">Nascondi / Pulisci</button>
+    </div>
+    <img id="preview" class="preview hidden" alt="Anteprima immagine" />
+    <div id="info" aria-live="polite"></div>
+  </div>
+
+  <script>
+    // Funzioni segnaposto per mantenere coerenza con i testi originali
+    function clearChat(){ console.log('Pulisci chat'); }
+    function sendMessage(){ console.log('Invia'); }
+    function uploadExcel(){ console.log('Carica file Excel'); }
+    function uploadPdf(){ console.log('Carica file PDF'); }
+
+    // Validazione semplice di Data URL per immagini
+    const dataUrlRegex = /^data:(image\/(png|jpeg|jpg|gif|webp|bmp|svg\+xml));base64,[A-Za-z0-9+/=]+$/;
+
+    function renderImage(){
+      const input = document.getElementById('dataUrl').value.trim();
+      const preview = document.getElementById('preview');
+      const info = document.getElementById('info');
+      if(!input){
+        info.textContent = 'Nessun valore incollato.';
+        preview.classList.add('hidden');
+        preview.removeAttribute('src');
+        return;
+      }
+      const looksValid = dataUrlRegex.test(input);
+      preview.src = input;
+      preview.classList.remove('hidden');
+      info.textContent = looksValid ? 'Immagine visualizzata correttamente.' : 'Formato Data URL non riconosciuto al 100%, anteprima tentata.';
+    }
+
+    function clearImage(){
+      const preview = document.getElementById('preview');
+      const info = document.getElementById('info');
+      const ta = document.getElementById('dataUrl');
+      preview.classList.add('hidden');
+      preview.removeAttribute('src');
+      info.textContent = '';
+      ta.value = '';
+    }
+
+    function downloadImage(){
+      const preview = document.getElementById('preview');
+      const src = preview.getAttribute('src');
+      const info = document.getElementById('info');
+      if(!src){
+        info.textContent = 'Nessuna immagine da scaricare.';
+        return;
+      }
+      const a = document.createElement('a');
+      let ext = 'png';
+      const m = src.match(/^data:image\/(.*?);base64,/);
+      if(m && m[1]){
+        ext = m[1].replace('svg+xml','svg').replace('jpeg','jpg');
+      }
+      a.href = src;
+      a.download = `immagine.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      info.textContent = 'Download avviato.';
+    }
+  </script>
+</body>
+</html>

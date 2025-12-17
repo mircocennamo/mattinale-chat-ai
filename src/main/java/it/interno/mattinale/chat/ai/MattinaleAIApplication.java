@@ -1,5 +1,5 @@
 
-package demo.elastic.rag;
+package it.interno.mattinale.chat.ai;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

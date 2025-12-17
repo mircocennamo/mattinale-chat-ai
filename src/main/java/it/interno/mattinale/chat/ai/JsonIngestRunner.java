@@ -1,5 +1,5 @@
 
-package demo.elastic.rag;
+package it.interno.mattinale.chat.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,12 +26,18 @@ public class JsonIngestRunner implements CommandLineRunner {
     @Value("classpath:questuraIns-2025-11-02.json")
     Resource questuraInsResouce2;
 
+    @Value("classpath:coscIns-2025-12-14.json")
+    Resource coscInsResouce2;
+
+    @Value("classpath:coscIns-2025-12-13.json")
+    Resource coscInsResouce1;
+
     public JsonIngestRunner(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
 
-    private void addjson(Resource resource) {
+    private void addjsonQuestura(Resource resource) {
         try (Reader reader = new InputStreamReader(resource.getInputStream())) {
             List<Document> docs = readQuesturaReportAsSectionDocuments(reader);
 
@@ -40,9 +46,25 @@ public class JsonIngestRunner implements CommandLineRunner {
             List<Document> chunks = splitter.split(docs);
 
             vectorStore.add(chunks);
-            System.out.println("[JsonIngestRunner] Ingest OK: " + chunks.size() + " chunks from " + resource.getFilename());
+            System.out.println("[JsonIngestRunner] Ingest Questura OK: " + chunks.size() + " chunks from " + resource.getFilename());
         } catch (Exception e) {
-            System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON: " + e.getMessage());
+            System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON Questura : " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void addjsonCosc(Resource resource) {
+        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
+            List<Document> docs = readCoscReportAsSectionDocuments(reader);
+
+            // (opzionale) split se qualche sezione fosse lunga:
+            var splitter = new org.springframework.ai.transformer.splitter.TokenTextSplitter();
+            List<Document> chunks = splitter.split(docs);
+
+            vectorStore.add(chunks);
+            System.out.println("[JsonIngestRunner] Ingest COSC OK: " + chunks.size() + " chunks from " + resource.getFilename());
+        } catch (Exception e) {
+            System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON COSC: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -50,8 +72,10 @@ public class JsonIngestRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        addjson(questuraInsResouce1);
-        addjson(questuraInsResouce2);
+        addjsonQuestura(questuraInsResouce1);
+        addjsonQuestura(questuraInsResouce2);
+        addjsonCosc(coscInsResouce1);
+        addjsonCosc(coscInsResouce2);
     }
 
     private List<Document> readQuesturaReportAsSectionDocuments(Reader reader) throws Exception {
@@ -63,10 +87,12 @@ public class JsonIngestRunner implements CommandLineRunner {
         String isoDate = toIso(text(root, "dataRiferimento")); // "2025-11-02"
 
         Map<String, String> sectionToField = new LinkedHashMap<>();
+        //SEZIONE QUESTURA
         sectionToField.put("organico", "infoOrganicoView");
         sectionToField.put("fattiDiRilievo", "fattiDiRilievoView");
         sectionToField.put("denunciati", "denunciatiView");
         sectionToField.put("arrestati", "arrestatiView");
+
         sectionToField.put("pattuglie", "pattuglieView");
         sectionToField.put("servizi", "serviziView");
         sectionToField.put("immigrazione", "immigrazioneView");
@@ -78,6 +104,52 @@ public class JsonIngestRunner implements CommandLineRunner {
         sectionToField.put("attiviPrevenzUfficiInvestigativi", "attiviPrevenzUfficiInvestigativiQuesturaView");
         sectionToField.put("attiviPrevenzAltriUffici", "attiviPrevenzAltriUfficiQuesturaView");
         sectionToField.put("attiviPrevenzCrimine", "attiviPrevenzCrimineView");
+
+       List<Document> docs = new ArrayList<>();
+        for (var entry : sectionToField.entrySet()) {
+            String sectionName = entry.getKey();
+            String jsonField = entry.getValue();
+            JsonNode node = root.get(jsonField);
+            if (node == null || node.isNull()) continue;
+
+            String content = makeReadableContent(sectionName, node);
+
+            Map<String, Object> md = new LinkedHashMap<>();
+            md.put("date", isoDate);
+            md.put("province", provincia);
+            md.put("partial", partial != null ? partial : false);
+            md.put("contentType", "section");
+            md.put("section", sectionName);
+            md.put("source", "questura");
+
+            docs.add(new Document(content, md));
+        }
+        return docs;
+    }
+
+
+
+    private List<Document> readCoscReportAsSectionDocuments(Reader reader) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(reader);
+
+        String provincia = text(root, "provincia");           // "ROMA"
+        Boolean partial = bool(root, "datiParziali");         // true/false
+        String isoDate = toIso(text(root, "dataRiferimento")); // "2025-11-02"
+
+        Map<String, String> sectionToField = new LinkedHashMap<>();
+        //SEZIONE QUESTURA
+        sectionToField.put("organico", "infoOrganicoView");
+        sectionToField.put("fattiDiRilievo", "fattiDiRilievoView");
+        sectionToField.put("denunciati", "denunciatiView");
+        sectionToField.put("arrestati", "arrestatiView");
+        sectionToField.put("perquisizioni", "perquisizioniView");
+        sectionToField.put("monitoraggioWeb", "monitoraggioWebView");
+        sectionToField.put("oscuramentoWeb", "oscuramentoWebView");
+        sectionToField.put("noscWeb", "noscWebView");
+        sectionToField.put("crimineEconFinanOnLine", "crimineEconFinanOnLineView");
+        sectionToField.put("attiviPrevenzTerritorioCosc", "attiviPrevenzTerritorioCoscView");
+
 
         List<Document> docs = new ArrayList<>();
         for (var entry : sectionToField.entrySet()) {
@@ -94,11 +166,14 @@ public class JsonIngestRunner implements CommandLineRunner {
             md.put("partial", partial != null ? partial : false);
             md.put("contentType", "section");
             md.put("section", sectionName);
+            md.put("source", "cosc");
 
             docs.add(new Document(content, md));
         }
         return docs;
     }
+
+
 
     private String makeReadableContent(String sectionName, JsonNode node) {
         StringBuilder sb = new StringBuilder();

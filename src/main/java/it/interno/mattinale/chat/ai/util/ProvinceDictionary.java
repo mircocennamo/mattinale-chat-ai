@@ -1,4 +1,4 @@
-package demo.elastic.rag.util;
+package it.interno.mattinale.chat.ai.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
