@@ -162,6 +162,30 @@
             cursor: not-allowed;
         }
 
+        /* Suggestions */
+        .suggestion-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .suggestion-chip {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -260,7 +284,10 @@
             e.preventDefault();
             const text = input.value.trim();
             if (!text) return;
+            submitQuery(text);
+        });
 
+        async function submitQuery(text) {
             // User Message
             appendMessage('user', text);
             input.value = '';
@@ -288,7 +315,7 @@
                 document.getElementById(loadingId).remove();
 
                 // AI Response
-                appendMessage('ai', data.text, data.receivedAt, data.image);
+                appendMessage('ai', data.text, data.receivedAt, data.image, data.suggestions);
 
             } catch (error) {
                 console.error(error);
@@ -298,9 +325,35 @@
                 sendBtn.disabled = false;
                 input.focus();
             }
-        });
+        }
 
-        function appendMessage(role, text, timestamp, imageUrl) {
+
+        function handleSuggestion(action, paramName) {
+            let userPrompt = "";
+            let prefix = "";
+
+            if (action === 'CHANGE_DATE') {
+                userPrompt = "Inserisci la nuova data (YYYY-MM-DD):";
+                prefix = "Cambia la data in ";
+            } else if (action === 'CHANGE_PROVINCE') {
+                userPrompt = "Inserisci la nuova provincia:";
+                prefix = "Cambia la provincia in ";
+            } else if (action === 'CHANGE_SECTION') {
+                userPrompt = "Inserisci la nuova sezione:";
+                prefix = "Cambia la sezione in ";
+            } else {
+                return;
+            }
+
+            const newValue = prompt(userPrompt);
+            if (newValue) {
+                const newQuery = `${prefix} ${newValue}`;
+                submitQuery(newQuery);
+            }
+        }
+
+
+        function appendMessage(role, text, timestamp, imageUrl, suggestions) {
             const div = document.createElement('div');
             div.className = `message ${role}`;
 
@@ -309,17 +362,22 @@
             if (imageUrl) {
                 // Fix relative path if needed
                 let finalSrc = imageUrl;
-                // If the backend returns /images/foo.png and we are at /mattinale-ai/,
-                // we should likely prepend /mattinale-ai if NOT present.
-                // However, WebConfig adds handler at /images/** relative to context root.
-                // So url is /mattinale-ai/images/...
-                // The tool currently returns "/images/..." (absolute string).
-                // Requesting /images/... from browser root might fail if deployed under context.
-                // We prepend context path if the path starts with / and doesn't have it.
                 if (finalSrc.startsWith('/') && !finalSrc.startsWith(CONTEXT_PATH)) {
                     finalSrc = CONTEXT_PATH + finalSrc;
                 }
                 content += `<br><a href="${finalSrc}" target="_blank"><img src="${finalSrc}" alt="Grafico generato"></a>`;
+            }
+
+            // Suggestions
+            if (role === 'ai' && suggestions && suggestions.length > 0) {
+                content += `<div class="suggestion-container">`;
+                suggestions.forEach(s => {
+                    // Escape single quotes for safety in onclick
+                    const safeAction = s.action.replace(/'/g, "\\'");
+                    const safeParam = s.paramName ? s.paramName.replace(/'/g, "\\'") : "";
+                    content += `<button class="suggestion-chip" onclick="handleSuggestion('${safeAction}', '${safeParam}')">${s.text}</button>`;
+                });
+                content += `</div>`;
             }
 
             content += `</div>`;

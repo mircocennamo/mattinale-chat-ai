@@ -96,13 +96,13 @@ public class JsonIngestRunner implements CommandLineRunner {
         sectionToField.put("pattuglie", "pattuglieView");
         sectionToField.put("servizi", "serviziView");
         sectionToField.put("immigrazione", "immigrazioneView");
-        sectionToField.put("controlliAmministrativi", "controlliAmministrativiQuesturaView");
+        sectionToField.put("controlliAmministrativiQuestura", "controlliAmministrativiQuesturaView");
         sectionToField.put("reati", "reatiView");
         sectionToField.put("misurePrevenzione", "misurePrevenzioneView");
-        sectionToField.put("sequestri", "sequestriQuesturaView");
-        sectionToField.put("attiviPrevenzTerritorio", "attiviPrevenzTerritorioQuesturaView");
-        sectionToField.put("attiviPrevenzUfficiInvestigativi", "attiviPrevenzUfficiInvestigativiQuesturaView");
-        sectionToField.put("attiviPrevenzAltriUffici", "attiviPrevenzAltriUfficiQuesturaView");
+        sectionToField.put("sequestriQuestura", "sequestriQuesturaView");
+        sectionToField.put("attiviPrevenzTerritorioQuestura", "attiviPrevenzTerritorioQuesturaView");
+        sectionToField.put("attiviPrevenzUfficiInvestigativiQuestura", "attiviPrevenzUfficiInvestigativiQuesturaView");
+        sectionToField.put("attiviPrevenzAltriUfficiQuestura", "attiviPrevenzAltriUfficiQuesturaView");
         sectionToField.put("attiviPrevenzCrimine", "attiviPrevenzCrimineView");
 
        List<Document> docs = new ArrayList<>();

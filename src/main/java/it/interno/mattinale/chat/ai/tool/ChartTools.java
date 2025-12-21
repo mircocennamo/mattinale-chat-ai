@@ -1,6 +1,6 @@
 package it.interno.mattinale.chat.ai.tool;
 
-import it.interno.mattinale.chat.ai.RagChartService;
+import it.interno.mattinale.chat.ai.service.RagChartService;
 import org.springframework.stereotype.Component;
 import org.springframework.ai.tool.annotation.Tool;
 

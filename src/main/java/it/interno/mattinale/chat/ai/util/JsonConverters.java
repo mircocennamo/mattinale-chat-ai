@@ -8,6 +8,9 @@ import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator;
 import it.interno.mattinale.chat.ai.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
+
 @Component
 public class JsonConverters {
 
@@ -19,6 +22,9 @@ public class JsonConverters {
 
     public ChatResponse toChatResponse(String json) throws JsonProcessingException {
         return mapper.readValue(json, ChatResponse.class);
+    }
+    public String toJson(Object obj) throws JsonProcessingException {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
     }
 
     public String getJsonSchema() {
@@ -32,6 +38,10 @@ public class JsonConverters {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Errore durante la generazione dello schema JSON", e);
         }
+    }
+
+    public String toJson(List<Map<String,Object>> obj) throws JsonProcessingException {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
     }
 }
 

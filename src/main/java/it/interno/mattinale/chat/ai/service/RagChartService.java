@@ -1,4 +1,4 @@
-package it.interno.mattinale.chat.ai;
+package it.interno.mattinale.chat.ai.service;
 
 import org.knowm.xchart.BitmapEncoder;
 import org.knowm.xchart.CategoryChart;
