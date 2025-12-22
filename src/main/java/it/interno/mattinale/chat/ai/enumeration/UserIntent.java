@@ -6,5 +6,8 @@ public enum UserIntent {
     COMPARE,
     MIN_MAX,
     DETAIL,
-    CHART
+    CHART,
+    CAPABILITIES,
+    SEARCH,
+    DISCOVERY
 }

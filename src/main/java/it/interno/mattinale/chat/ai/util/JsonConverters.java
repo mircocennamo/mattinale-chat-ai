@@ -1,6 +1,7 @@
 package it.interno.mattinale.chat.ai.util;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.module.jsonSchema.JsonSchema;
@@ -43,5 +44,21 @@ public class JsonConverters {
     public String toJson(List<Map<String,Object>> obj) throws JsonProcessingException {
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
     }
+
+
+    /**
+     * Restituisce il JsonNode serializzato come stringa JSON.
+     *
+     * @param node il JsonNode da serializzare
+     * @return la rappresentazione JSON del nodo
+     */
+    public  String toJson(JsonNode node) {
+        try {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        } catch (Exception e) {
+            throw new RuntimeException("Errore nella serializzazione del JsonNode", e);
+        }
+    }
+
 }
 

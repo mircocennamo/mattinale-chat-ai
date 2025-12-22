@@ -1,5 +1,6 @@
 package it.interno.mattinale.chat.ai.service;
 
+import it.interno.mattinale.chat.ai.enumeration.UserIntent;
 import it.interno.mattinale.chat.ai.model.QueryPlan;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -11,23 +12,26 @@ import java.util.List;
 @Service
 public class VectorService {
     private final VectorStore vectorStore;
-    private final static String DEFAULT_FILTER = "province == 'ROMA' AND section == 'arrestati'";
+
 
     public VectorService(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
     public List<Document> search(QueryPlan queryPlan) {
+        if(queryPlan == null || !queryPlan.requiresVector() || UserIntent.CAPABILITIES.equals(queryPlan.userIntent())) {
+            return List.of();
+        }
         String filterExpression = buildFilter(queryPlan);
         System.out.println("Filter Expression: " + filterExpression);
         //if (!queryPlan.requiresVector())
        //     return List.of();
         return vectorStore.similaritySearch(
                 SearchRequest.builder()
-                        .query("*")                   // ⚠️ necessario!
-                        .filterExpression(filterExpression)       // es.: "province == 'ROMA' AND section == 'arrestati'"
-                        .topK(100)                        // recupera più contesto
-                        // .similarityThreshold(0.70)      // opzionale: riduci se il dominio è vario
+                        .query("*")                                 // ⚠️ necessario!
+                        .filterExpression(filterExpression)         // es.: "province == 'ROMA' AND section == 'arrestati'"
+                        .topK(100)                                  // recupera più contesto
+                        // .similarityThreshold(0.70)               // opzionale: riduci se il dominio è vario
                         .build()
         );
 

@@ -1,6 +1,5 @@
 package it.interno.mattinale.chat.ai.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import it.interno.mattinale.chat.ai.component.Oracle23AiTools;
 import it.interno.mattinale.chat.ai.enumeration.UserIntent;
 import it.interno.mattinale.chat.ai.model.ChatResponse;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static it.interno.mattinale.chat.ai.util.ToolsMapping.getTools;
 
@@ -59,6 +57,45 @@ public class AnswerService {
 
         System.out.println("[RagService] intent: " + intent.name());
 
+        if (intent == UserIntent.CAPABILITIES) {
+            System.out.println("[RagService] Handling CAPABILITIES intent. Injecting system capabilities doc.");
+            String capabilitiesText = """
+                Il sistema Mattinale Chat AI è progettato per analizzare e interrogare i dati dei Mattinali di Polizia.
+                Ecco le principali tipologie di richieste che puoi effettuare:
+                
+                1. **Ricerca e Dettaglio**:
+                   - "Mostrami i fatti di rilievo di Roma di oggi"
+                   - "Cerca mattinali della Polizia Stradale a Milano del 15/11/2025"
+                
+                2. **Conteggi e Statistiche**:
+                   - "Quanti arrestati ci sono stati a Napoli ieri?"
+                   - "Conta le pattuglie a Torino nell'ultima settimana"
+                
+                3. **Analisi dei Trend**:
+                   - "Mostrami l'andamento dei reati a Roma negli ultimi 10 giorni"
+                   - "Fammi vedere il trend delle denunce a Firenze"
+                
+                4. **Confronti**:
+                   - "Confronta i dati di oggi con quelli di ieri a Bologna"
+                   - "Differenze tra il 1 novembre e il 2 novembre a Venezia"
+                
+                5. **Minimi e Massimi**:
+                   - "In quale giorno ci sono stati più arresti a Palermo?"
+                   - "Quando c'è stato il minimo di pattuglie a Genova?"
+                
+                6. **Grafici**:
+                   - "Genera un grafico degli arrestati a Roma nell'ultimo mese"
+                
+                Puoi filtrare per:
+                - **Provincia**: (es. Roma, Milano)
+                - **Data**: (oggi, ieri, data specifica)
+                - **Sezione**: (arrestati, denunciati, pattuglie, ecc.)
+                - **Fonte**: (Questura, Polfer, Stradale, ecc.)
+                """;
+            docs = new java.util.ArrayList<>();
+            docs.add(new Document(capabilitiesText));
+        }
+
         PromptTemplate promptTemplate = new PromptTemplate(getInfoTemplate);
 
         String documents = docs.stream()
@@ -94,31 +131,40 @@ public class AnswerService {
         // Inietta le opzioni nel Prompt
         Prompt prompt = new Prompt(java.util.List.of(systemMessage, userMessage));
         ChatClient.ChatClientRequestSpec chatClientRequestSpec = ChatClient.create(chatModel).prompt(prompt);
-        if(queryPlan!=null){
+        ChatResponse chatResponse;
+        if(queryPlan!=null && !UserIntent.CAPABILITIES.equals(queryPlan.userIntent())) {
             System.out.println("[RagService] Tool Context: " + queryPlan);
             Map<String,Object> queryPlanMap = getTools(queryPlan);
             chatClientRequestSpec.toolContext(queryPlanMap);
+             chatResponse = chatClientRequestSpec
+                    .tools(chartTools, oracle23AiTools)
+                    .advisors(new SimpleLoggerAdvisor())
+                    .call()
+                    .entity(ChatResponse.class);
+            if (chatResponse != null && (chatResponse.getText() == null ||
+                    chatResponse.getText().toLowerCase().contains("non disponibile") ||
+                    chatResponse.getText().toLowerCase().contains("non ho trovato") ||
+                    chatResponse.getText().toLowerCase().contains("nessun dato"))) {
+                System.out.println("[RagService] Detected empty/negative response, adding suggestions.");
+                chatResponse.setSuggestions(java.util.List.of(
+                        new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cambiare la data?", "CHANGE_DATE", "date"),
+                        new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cercare per un'altra provincia?",
+                                "CHANGE_PROVINCE", "province"),
+                        new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cercare per una sezione diversa?",
+                                "CHANGE_SECTION", "section")));
+            }
+
+        }else{
+             chatResponse = chatClientRequestSpec
+                    .advisors(new SimpleLoggerAdvisor())
+                    .call()
+                    .entity(ChatResponse.class);
         }
-        ChatResponse chatResponse = chatClientRequestSpec
-                .tools(chartTools, oracle23AiTools)
-                .advisors(new SimpleLoggerAdvisor())
-                .call()
-                .entity(ChatResponse.class);
+
 
         System.out.println("[RagService] Response: " + chatResponse);
 
-        if (chatResponse != null && (chatResponse.getText() == null ||
-                chatResponse.getText().toLowerCase().contains("non disponibile") ||
-                chatResponse.getText().toLowerCase().contains("non ho trovato") ||
-                chatResponse.getText().toLowerCase().contains("nessun dato"))) {
-            System.out.println("[RagService] Detected empty/negative response, adding suggestions.");
-            chatResponse.setSuggestions(java.util.List.of(
-                    new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cambiare la data?", "CHANGE_DATE", "date"),
-                    new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cercare per un'altra provincia?",
-                            "CHANGE_PROVINCE", "province"),
-                    new it.interno.mattinale.chat.ai.model.Suggestion("Vuoi cercare per una sezione diversa?",
-                            "CHANGE_SECTION", "section")));
-        }
+
         return chatResponse;
     }
 

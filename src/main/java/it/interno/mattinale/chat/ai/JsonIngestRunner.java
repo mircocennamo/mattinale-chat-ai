@@ -3,6 +3,7 @@ package it.interno.mattinale.chat.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.interno.mattinale.chat.ai.util.JsonConverters;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,8 +33,11 @@ public class JsonIngestRunner implements CommandLineRunner {
     @Value("classpath:coscIns-2025-12-13.json")
     Resource coscInsResouce1;
 
-    public JsonIngestRunner(VectorStore vectorStore) {
+    private final JsonConverters jsonConverters;
+
+    public JsonIngestRunner(VectorStore vectorStore, JsonConverters jsonConverters) {
         this.vectorStore = vectorStore;
+        this.jsonConverters = jsonConverters;
     }
 
 
@@ -112,7 +116,8 @@ public class JsonIngestRunner implements CommandLineRunner {
             JsonNode node = root.get(jsonField);
             if (node == null || node.isNull()) continue;
 
-            String content = makeReadableContent(sectionName, node);
+            String content = makeReadableContent(node);
+           // System.out.println("Section " + sectionName + " content length: " + content.length() + "content: " + content);
 
             Map<String, Object> md = new LinkedHashMap<>();
             md.put("date", isoDate);
@@ -158,8 +163,8 @@ public class JsonIngestRunner implements CommandLineRunner {
             JsonNode node = root.get(jsonField);
             if (node == null || node.isNull()) continue;
 
-            String content = makeReadableContent(sectionName, node);
-
+            String content = makeReadableContent(node);
+            //System.out.println("Section " + sectionName + " content length: " + content.length() + "content: " + content);
             Map<String, Object> md = new LinkedHashMap<>();
             md.put("date", isoDate);
             md.put("province", provincia);
@@ -175,15 +180,8 @@ public class JsonIngestRunner implements CommandLineRunner {
 
 
 
-    private String makeReadableContent(String sectionName, JsonNode node) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Sezione: ").append(sectionName).append("\n");
-        node.fields().forEachRemaining(e -> {
-            String k = e.getKey();
-            JsonNode v = e.getValue();
-            sb.append(k).append(": ").append(v.asText()).append("\n");
-        });
-        return sb.toString();
+    private String makeReadableContent(JsonNode node) {
+        return jsonConverters.toJson(node);
     }
 
     private String text(JsonNode node, String field) {

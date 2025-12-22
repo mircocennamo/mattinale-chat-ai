@@ -12,14 +12,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class QueryPlannerService {
-  private final ChatClient chatClient;
   private final ChatModel chatModel;
   private final org.springframework.ai.chat.memory.ChatMemory chatMemory;
   private final JsonConverters jsonConverters;
 
-  public QueryPlannerService(ChatClient chatClient, ChatModel chatModel,
+  public QueryPlannerService(ChatModel chatModel,
                              org.springframework.ai.chat.memory.ChatMemory chatMemory, JsonConverters jsonConverters) {
-    this.chatClient = chatClient;
     this.chatModel = chatModel;
     this.chatMemory = chatMemory;
       this.jsonConverters = jsonConverters;
@@ -48,11 +46,12 @@ public class QueryPlannerService {
                   3. Restituisci SEMPRE un oggetto JSON completo con TUTTI i filtri attivi (sia quelli nuovi che quelli mantenuti dalla storia).
                   4. Se un filtro non è mai stato menzionato, non includerlo.
                   5. Se l'utente dice "oggi" o "ieri", converti in data ISO.
+                  6. Se l'utente chiede quali sono le funzionalità, cosa puoi fare, o aiuto sulle richieste, usa userIntent: CAPABILITIES.
 
                 Rispondi in formato JSON con i seguenti campi:
                  - requiresSql: booleano
                  - requiresVector: booleano
-                 - userIntent: stringa (COUNT,TREND,COMPARE,MIN_MAX,DETAIL,CHART)
+                 - userIntent: stringa (COUNT,TREND,COMPARE,MIN_MAX,DETAIL,CHART,CAPABILITIES)
                  - dateRange: intervallo di date, se applicabile in formato ISO "yyyy-MM-dd" (es. "2025-11-15"),se l'utente chiede un singolo giorno, fornisci un intervallo con la stessa data di inizio e fine, usa una lista con tre elementi [from,to,days],rispondi con json valido. esempio {"from":"2025-11-01","to":"2025-11-15",days:15} se non specificato null
              - section: stringa (organico,fattiDiRilievo,denunciati,arrestati,pattuglie,
                                      servizi,immigrazione,controlliAmministrativiQuestura,reati,misurePrevenzione,sequestriQuestura,attiviPrevenzTerritorioQuestura,
@@ -75,9 +74,7 @@ public class QueryPlannerService {
     messages.addAll(history);
     messages.add(userMessage);
 
-    // 5. Call Chat Client
-    // We do NOT use Advisors here to avoid conflicts. We manually manage context.
-    ChatClient chatClient = ChatClient.builder(chatModel).build();
+
 
     QueryPlan queryPlanResponse = ChatClient.create(chatModel)
             .prompt().messages(messages)
@@ -95,63 +92,6 @@ public class QueryPlannerService {
       System.out.println("[QueryPlannerService] JSON Response: " + queryPlanResponse);
 
    return queryPlanResponse;
-
-
-
   }
 
-  /*
-   * ChatClient chatClient = ChatClient.builder(chatModel).build();
-   * return chatClient.prompt().user(text).system("""
-   * Sei un assistente che estrae filtri di ricerca da domande in linguaggio
-   * naturale.
-   * Dato un testo in italiano, estrai i seguenti filtri se presenti:
-   * - provincia: nome della provincia in maiuscolo (es. "ROMA", "MILANO")
-   * - data: in formato ISO "yyyy-MM-dd" (es. "2025-11-15")
-   * - source : questura,polizia stradale,polfer,cosc,frontiera
-   * Fornisci la risposta da poter poi inserire nel filter del VectorStore.
-   * - sezione: una delle seguenti sezioni: arrestati, denunciati, pattuglie,
-   * servizi, immigrazione, controlliAmministrativiQuestura, reati,
-   * misurePrevenzione, sequestriQuestura, attiviPrevenzTerritorioQuestura,
-   * attiviPrevenzUfficiInvestigativiQuestura, attiviPrevenzAltriUfficiQuestura,
-   * attiviPrevenzCrimine
-   * - datiParziali: true/false
-   * Ad esempio, se l'utente chiede
-   * "Mattinale della questura di Roma del  15/11/2025 con dati parziali?",
-   * la risposta sarà:
-   * province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source ==
-   * 'questura'
-   * 
-   * Ad esempio, se l'utente chiede
-   * "Mattinale della polfer o polizia ferroviaria di Roma del  15/11/2025 con dati parziali?"
-   * ,
-   * la risposta sarà:
-   * province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source ==
-   * 'polfer'
-   * 
-   * Ad esempio, se l'utente chiede
-   * "Mattinale cosc di Roma del  15/11/2025 con dati parziali?",
-   * la risposta sarà:
-   * province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source ==
-   * 'cosc'
-   * 
-   * Ad esempio, se l'utente chiede
-   * "Mattinale della polizia stradale o polizia di Roma del  15/11/2025 con dati parziali?"
-   * ,
-   * la risposta sarà:
-   * province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source ==
-   * 'polizia stradale'
-   * 
-   * Ad esempio, se l'utente chiede
-   * "Mattinale della frontiera di Roma del  15/11/2025 con dati parziali?",
-   * la risposta sarà:
-   * province == 'ROMA' AND date == '2025-11-15' AND partial == true AND source ==
-   * 'frontiera'
-   * 
-   * Se un filtro non è presente, non includerlo nella risposta.
-   * Se l'utente dice "oggi" o "ieri", converti in data ISO
-   * Usa il dizionario delle province per mappare nomi comuni a sigle ufficiali.
-   * Se nessun filtro è presente, rispondi con stringa vuota.
-   * """).call().content();
-   */
 }
