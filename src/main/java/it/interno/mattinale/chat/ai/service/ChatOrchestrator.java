@@ -2,28 +2,15 @@ package it.interno.mattinale.chat.ai.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.interno.mattinale.chat.ai.model.ChatResponse;
-import it.interno.mattinale.chat.ai.model.QueryPlan;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class ChatOrchestrator {
-    private final QueryPlannerService queryPlannerService;
-    private final VectorService vectorService;
-    private final AnswerService answerService;
-    private final ChatModel chatModel;
 
-    public ChatOrchestrator(QueryPlannerService queryPlannerService, VectorService vectorService,
-            AnswerService answerService, ChatModel chatModel) {
-        this.queryPlannerService = queryPlannerService;
-        this.vectorService = vectorService;
-        this.answerService = answerService;
-        this.chatModel = chatModel;
+    private final RoutingAgent routingAgent;
+
+    public ChatOrchestrator(RoutingAgent routingAgent) {
+       this.routingAgent = routingAgent;
     }
 
     /**
@@ -39,21 +26,9 @@ public class ChatOrchestrator {
         // 1. Pianificazione
         System.out.println("[ChatOrchestrator] Question : " + question);
         System.out.println("[ChatOrchestrator] Conversation Id : " + conversationId);
-        QueryPlan queryPlan = queryPlannerService.plan(question, conversationId);
-
-        System.out.println("[ChatOrchestrator] Plan: " + queryPlan);
-
-        // 2. Esecuzione query/tool
-        // if (Boolean.TRUE.equals(queryPlan.requiresVector())) {
-        List<Document> documents = new ArrayList<>(vectorService.search(queryPlan));
-       // }
-
-        // 3. Generazione risposta
-        // Passiamo l'intent al servizio di risposta per guidare la scelta del tool
-        // (opzionale)
-        return answerService.generate(queryPlan,question, documents, queryPlan.userIntent());
+        return routingAgent.route(question,conversationId);
     }
-
+/*
     public String extractFilterFromNL(String text) {
         ChatClient chatClient = ChatClient.builder(chatModel).build();
         return chatClient.prompt().user(text)
@@ -121,4 +96,8 @@ public class ChatOrchestrator {
 
         return f;
     }
+
+*/
+
 }
+

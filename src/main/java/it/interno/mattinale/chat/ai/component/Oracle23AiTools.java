@@ -17,12 +17,47 @@ public class Oracle23AiTools {
                 this.jdbcTemplate = jdbcTemplate;
         }
 
+
+        /*
+         * ============================================================
+         * 1. Estrazione intero mattinale contenuti filtrati (drill-down)
+         * ============================================================
+         */
+        @Tool(name = "getFullArticleByFilter", description = "Recupera l'intero mattinale  filtrati per range di date, provincia e sorgente")
+        public List<DocumentDto> getFullArticleByFilter(ToolContext toolContext,
+                                                      String province,
+                                                        String source,
+                                                      LocalDate date1,LocalDate date2,int days) {
+                System.out.println("Parametri estratti dai parametri di getDocumentsByFilter  province=" + province  + ", source= " + source   + ",date1=" + date1 + ",date2=" + date2 + ", days=" + days);
+                if (toolContext != null) {
+                        System.out.println("ToolContext presente, estraggo i parametri dal contesto...");
+                        date1 = (LocalDate) toolContext.getContext().get("date1");
+                        date2 = (LocalDate) toolContext.getContext().get("date2");
+                        province = (String) toolContext.getContext().get("province");
+                        source = (String) toolContext.getContext().get("source");
+                        System.out.println("Pcontesto getDocumentsByFilter  province=" + province +  ", source= " + source   + ",date1=" + date1 + ",date2=" + date2 + ", days=" + days);
+
+                }
+                String section="fullArticle";
+                return jdbcTemplate.query("""
+                                    SELECT content, metadata
+                                    FROM AI_VECTOR_STORE
+                                    WHERE TO_DATE(json_value(metadata, '$.date'), 'YYYY-MM-DD') BETWEEN ? AND ?
+                                      AND json_value(metadata,'$.province') = ?
+                                      AND json_value(metadata,'$.section') = ?
+                                      AND json_value(metadata,'$.source') = ?
+                                """, DocumentDto.ROW_MAPPER,
+                        date1, date2 ,province, section, source);
+        }
+
+
+
         /*
          * ============================================================
          * 1. Estrazione contenuti filtrati (drill-down)
          * ============================================================
          */
-        @Tool(name = "getDocumentsByFilter", description = "Recupera i contenuti filtrati per range di date, provincia, sezione e sorgente")
+        @Tool(name = "getDocumentsByFilter", description = "Recupera i contenuti filtrati del mattinale per range di date, provincia, sezione e sorgente")
         public List<DocumentDto> getDocumentsByFilter(ToolContext toolContext,
                        String province,
                         String section,
@@ -55,32 +90,31 @@ public class Oracle23AiTools {
          * 2. Conteggio semplice
          * ============================================================
          */
-        @Tool(name = "countByFilter", description = "Conta i documenti in base ai metadata")
+        @Tool(name = "countByFilter", description = "Conta i documenti in base ai metadata in un range di date, provincia, sezione e sorgente")
         public int countByFilter(ToolContext toolContext,
-                        LocalDate date,
-                        String province,
-                        String section,
+                                 String province,
+                        String section,LocalDate date1,LocalDate date2,
                         String source) {
-                System.out.println("Parametri estratti dai parametri di countByFilter : date=" + date
-                        + ", province=" + province + ", section=" + section + ", source=" + source );
+                System.out.println("Parametri estratti dai parametri di countByFilter  province=" + province + ", section=" + section + ", source=" + source + ",date1=" + date1 + ",date2=" + date2 );
                 if (toolContext != null) {
                         System.out.println("ToolContext presente, estraggo i parametri dal contesto...");
-                        date = (LocalDate) toolContext.getContext().get("date");
                         province = (String) toolContext.getContext().get("province");
                         section = (String) toolContext.getContext().get("section");
                         source = (String) toolContext.getContext().get("source");
-                        System.out.println("Parametri estratti dal contesto : date=" + date + ", province="
-                                + province + ", section=" + section + " , source= " + source);
+                        date1 = (LocalDate) toolContext.getContext().get("date1");
+                        date2 = (LocalDate) toolContext.getContext().get("date2");
+                        System.out.println("Parametri estratti dal contesto :  province="
+                                + province + ", section=" + section + " , source= " + source + ",date1=" + date1 + ",date2=" + date2 );
                 }
                 return jdbcTemplate.queryForObject("""
                                     SELECT COUNT(*)
                                     FROM AI_VECTOR_STORE
-                                    WHERE TO_DATE(json_value(metadata, '$.date'), 'YYYY-MM-DD') = ?
+                                    WHERE TO_DATE(json_value(metadata, '$.date'), 'YYYY-MM-DD') BETWEEN ? AND ?
                                       AND json_value(metadata,'$.province') = ?
                                       AND json_value(metadata,'$.section') = ?
                                       AND json_value(metadata,'$.source') = ?
                                 """, Integer.class,
-                                date, province, section,source);
+                        date1, date2, province, section,source);
         }
 
         /*
@@ -411,27 +445,6 @@ public class Oracle23AiTools {
 }
 
 /* ========================= DTO ========================= */
-
-record DocumentDto(String content, String metadata) {
-        static final org.springframework.jdbc.core.RowMapper<DocumentDto> ROW_MAPPER = (rs,
-                        rowNum) -> new DocumentDto(rs.getString("content"), rs.getString("metadata"));
-}
-
-record TrendPointDto(LocalDate day, int total) {
-        static final org.springframework.jdbc.core.RowMapper<TrendPointDto> ROW_MAPPER = (rs,
-                        rowNum) -> new TrendPointDto(LocalDate.parse(rs.getString("day")), rs.getInt("total"));
-}
-
-record ComparisonPointDto(LocalDate day, String content, String metadata) {
-        static final org.springframework.jdbc.core.RowMapper<ComparisonPointDto> ROW_MAPPER = (rs,
-                        rowNum) -> new ComparisonPointDto(LocalDate.parse(rs.getString("day")), rs.getString("content"),
-                                        rs.getString("metadata"));
-}
-
-record MinMaxDto(LocalDate day, int total) {
-        static final org.springframework.jdbc.core.RowMapper<MinMaxDto> ROW_MAPPER = (rs,
-                        rowNum) -> new MinMaxDto(LocalDate.parse(rs.getString("day")), rs.getInt("total"));
-}
 
 record AggregationDto(String key, int total) {
         static final org.springframework.jdbc.core.RowMapper<AggregationDto> ROW_MAPPER = (rs,

@@ -51,9 +51,9 @@ public class QueryPlannerService {
                 Rispondi in formato JSON con i seguenti campi:
                  - requiresSql: booleano
                  - requiresVector: booleano
-                 - userIntent: stringa (COUNT,TREND,COMPARE,MIN_MAX,DETAIL,CHART,CAPABILITIES)
-                 - dateRange: intervallo di date, se applicabile in formato ISO "yyyy-MM-dd" (es. "2025-11-15"),se l'utente chiede un singolo giorno, fornisci un intervallo con la stessa data di inizio e fine, usa una lista con tre elementi [from,to,days],rispondi con json valido. esempio {"from":"2025-11-01","to":"2025-11-15",days:15} se non specificato null
-             - section: stringa (organico,fattiDiRilievo,denunciati,arrestati,pattuglie,
+                 - userIntent: stringa (FULL_ARTICLE,COUNT,TREND,COMPARE,MIN_MAX,DETAIL,CHART,CAPABILITIES)
+                 - dateRange: intervallo di date, se applicabile in formato ISO "yyyy-MM-dd" (es. "2025-11-15"),se l'utente chiede un singolo giorno, fornisci un intervallo con la stessa data di inizio e fine, usa una lista con tre elementi [from,to,days],rispondi con json valido. esempio {"from":"2025-11-01","to":"2025-11-15","days":15} se non specificato null
+             - section: stringa (fullArticle,organico,fattiDiRilievo,denunciati,arrestati,pattuglie,
                                      servizi,immigrazione,controlliAmministrativiQuestura,reati,misurePrevenzione,sequestriQuestura,attiviPrevenzTerritorioQuestura,
                                      attiviPrevenzUfficiInvestigativiQuestura,attiviPrevenzAltriUfficiQuestura,attiviPrevenzCrimine,perquisizioni,monitoraggioWeb,oscuramentoWeb,noscWeb,crimineEconFinanOnLine,attiviPrevenzTerritorioCosc) se non specificato null
              - source: stringa (questura,polizia stradale,polfer,cosc,frontiera) se non specificato null

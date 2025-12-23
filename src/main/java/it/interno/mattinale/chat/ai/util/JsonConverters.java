@@ -24,8 +24,13 @@ public class JsonConverters {
     public ChatResponse toChatResponse(String json) throws JsonProcessingException {
         return mapper.readValue(json, ChatResponse.class);
     }
-    public String toJson(Object obj) throws JsonProcessingException {
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+    public String toJson(Object obj)  {
+        try
+        {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Errore durante la serializzazione in JSON", e);
+        }
     }
 
     public String getJsonSchema() {

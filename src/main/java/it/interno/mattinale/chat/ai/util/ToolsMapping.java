@@ -18,8 +18,10 @@ public class ToolsMapping {
             UserIntent.MIN_MAX, List.of("getMinMaxByPeriod"),
             UserIntent.CHART, List.of("getChartDataset","barChart"),
             UserIntent.CAPABILITIES, List.of(),
-            UserIntent.SEARCH,List.of("searchKeywords"),
-            UserIntent.DISCOVERY,List.of("getDistinctMetadata"));
+            UserIntent.SEARCH,
+            List.of("getDocumentsByFilter", "getOnlyFinalData", "aggregateBySection", "aggregateBySource"),
+            UserIntent.DISCOVERY,List.of("getDistinctMetadata"),
+            UserIntent.FULL_ARTICLE, List.of("getFullArticleByFilter"));
 
     private ToolsMapping() {
         // Prevent instantiation

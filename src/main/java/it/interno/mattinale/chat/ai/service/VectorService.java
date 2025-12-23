@@ -5,8 +5,10 @@ import it.interno.mattinale.chat.ai.model.QueryPlan;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,16 +28,25 @@ public class VectorService {
         System.out.println("Filter Expression: " + filterExpression);
         //if (!queryPlan.requiresVector())
        //     return List.of();
-        return vectorStore.similaritySearch(
+        List<Document> result =  vectorStore.similaritySearch(
                 SearchRequest.builder()
                         .query("*")                                 // ⚠️ necessario!
                         .filterExpression(filterExpression)         // es.: "province == 'ROMA' AND section == 'arrestati'"
                         .topK(100)                                  // recupera più contesto
                         // .similarityThreshold(0.70)               // opzionale: riduci se il dominio è vario
-                        .build()
-        );
+                        .build());
 
+        // importante: mutabile
+        assert result != null;
+        return   new ArrayList<>(result);
     }
+
+
+
+
+
+
+
 
     private String buildFilter(QueryPlan queryPlan) {
         StringBuilder filter = new StringBuilder();

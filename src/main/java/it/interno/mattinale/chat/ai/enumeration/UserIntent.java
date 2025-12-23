@@ -9,5 +9,6 @@ public enum UserIntent {
     CHART,
     CAPABILITIES,
     SEARCH,
-    DISCOVERY
+    DISCOVERY,
+    FULL_ARTICLE
 }

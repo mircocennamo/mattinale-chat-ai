@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.interno.mattinale.chat.ai.util.JsonConverters;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -35,6 +36,8 @@ public class JsonIngestRunner implements CommandLineRunner {
 
     private final JsonConverters jsonConverters;
 
+    private final static TokenTextSplitter tokenTextSplitter = new org.springframework.ai.transformer.splitter.TokenTextSplitter();
+
     public JsonIngestRunner(VectorStore vectorStore, JsonConverters jsonConverters) {
         this.vectorStore = vectorStore;
         this.jsonConverters = jsonConverters;
@@ -43,14 +46,11 @@ public class JsonIngestRunner implements CommandLineRunner {
 
     private void addjsonQuestura(Resource resource) {
         try (Reader reader = new InputStreamReader(resource.getInputStream())) {
-            List<Document> docs = readQuesturaReportAsSectionDocuments(reader);
-
-            // (opzionale) split se qualche sezione fosse lunga:
-            var splitter = new org.springframework.ai.transformer.splitter.TokenTextSplitter();
-            List<Document> chunks = splitter.split(docs);
-
-            vectorStore.add(chunks);
-            System.out.println("[JsonIngestRunner] Ingest Questura OK: " + chunks.size() + " chunks from " + resource.getFilename());
+            //aggiungo il report completo
+            JsonNode root = readReport(reader,"questura");
+            //aggiungo le sezioni
+            readQuesturaReportAsSectionDocuments(root);
+            System.out.println("[JsonIngestRunner] Ingest Questura OK: chunks from " + resource.getFilename());
         } catch (Exception e) {
             System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON Questura : " + e.getMessage());
             e.printStackTrace();
@@ -59,14 +59,15 @@ public class JsonIngestRunner implements CommandLineRunner {
 
     private void addjsonCosc(Resource resource) {
         try (Reader reader = new InputStreamReader(resource.getInputStream())) {
-            List<Document> docs = readCoscReportAsSectionDocuments(reader);
+            //aggiungo il report completo
 
-            // (opzionale) split se qualche sezione fosse lunga:
-            var splitter = new org.springframework.ai.transformer.splitter.TokenTextSplitter();
-            List<Document> chunks = splitter.split(docs);
+            JsonNode root = readReport(reader,"cosc");
 
-            vectorStore.add(chunks);
-            System.out.println("[JsonIngestRunner] Ingest COSC OK: " + chunks.size() + " chunks from " + resource.getFilename());
+
+            //aggiungo le sezioni
+             readCoscReportAsSectionDocuments(root);
+
+            System.out.println("[JsonIngestRunner] Ingest COSC OK:  chunks from " + resource.getFilename());
         } catch (Exception e) {
             System.out.println("[JsonIngestRunner] Errore durante l'ingest del JSON COSC: " + e.getMessage());
             e.printStackTrace();
@@ -82,9 +83,12 @@ public class JsonIngestRunner implements CommandLineRunner {
         addjsonCosc(coscInsResouce2);
     }
 
-    private List<Document> readQuesturaReportAsSectionDocuments(Reader reader) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(reader);
+
+
+
+
+
+    private void readQuesturaReportAsSectionDocuments(JsonNode root) throws Exception {
 
         String provincia = text(root, "provincia");           // "ROMA"
         Boolean partial = bool(root, "datiParziali");         // true/false
@@ -129,14 +133,30 @@ public class JsonIngestRunner implements CommandLineRunner {
 
             docs.add(new Document(content, md));
         }
-        return docs;
+
+        vectorStore.add(tokenTextSplitter.split(docs));
     }
 
-
-
-    private List<Document> readCoscReportAsSectionDocuments(Reader reader) throws Exception {
+    private  JsonNode readReport(Reader reader,String source) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
+        List<org.springframework.ai.document.Document> docs = new ArrayList<>();
         JsonNode root = mapper.readTree(reader);
+        String provincia = text(root, "provincia");           // "ROMA"
+        Boolean partial = bool(root, "datiParziali");         // true/false
+        String isoDate = toIso(text(root, "dataRiferimento")); // "2025-11-02"
+        Map<String, Object> md = new LinkedHashMap<>();
+        md.put("date", isoDate);
+        md.put("province", provincia);
+        md.put("partial", partial != null ? partial : false);
+        md.put("contentType", "fullArticle");
+        md.put("section", "fullArticle");
+        md.put("source", source);
+        docs.add(new org.springframework.ai.document.Document(makeReadableContent(root), md));
+        vectorStore.add(tokenTextSplitter.split(docs));
+        return root;
+    }
+
+    private void readCoscReportAsSectionDocuments(JsonNode root) throws Exception {
 
         String provincia = text(root, "provincia");           // "ROMA"
         Boolean partial = bool(root, "datiParziali");         // true/false
@@ -175,7 +195,8 @@ public class JsonIngestRunner implements CommandLineRunner {
 
             docs.add(new Document(content, md));
         }
-        return docs;
+        List<Document> chunks = tokenTextSplitter.split(docs);
+        vectorStore.add(chunks);
     }
 
 
